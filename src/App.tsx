@@ -1,12 +1,15 @@
 import React from 'react';
-import AttendanceForm from './AttendanceForm';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AttendanceForm } from './AttendanceForm';
 import './App.css';
 
 function App() {
   return (
-    <div className="App">
-      <AttendanceForm />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/mark-attendance/:sessionId" element={<AttendanceForm />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

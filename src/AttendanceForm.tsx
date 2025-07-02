@@ -42,7 +42,7 @@ const validatePhone = (phone: string) => {
     return re.test(phone);
 };
 
-export const AttendanceMarking: React.FC = () => {
+export const AttendanceForm: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
     const [formValues, setFormValues] = useState({
         name: '',
@@ -58,10 +58,9 @@ export const AttendanceMarking: React.FC = () => {
     const [error, setError] = useState<string | ReactNode | null>(null);
     const [success, setSuccess] = useState(false);
     const [locationValid, setLocationValid] = useState<boolean | null>(null);
-    const [location, setLocation] = useState<GeoLocation | null>(null);
 
     const webcamRef = useRef<Webcam>(null);
-    const { location: geolocationLocation } = useGeolocation();
+    const { location } = useGeolocation();
 
     // Validate location with the backend
     const validateLocation = async (loc: GeoLocation): Promise<boolean> => {
@@ -88,6 +87,22 @@ export const AttendanceMarking: React.FC = () => {
             return false;
         }
     };
+
+    // Check location validity when location changes
+    useEffect(() => {
+        if (location) {
+            const checkLocation = async () => {
+                const isValid = await validateLocation(location);
+                setLocationValid(isValid);
+                
+                if (!isValid) {
+                    setError("Your location is outside the allowed area. Please ensure you are within the venue boundaries.");
+                }
+            };
+            
+            checkLocation();
+        }
+    }, [location]);
 
     useEffect(() => {
         if (navigator.geolocation) {
@@ -160,15 +175,14 @@ export const AttendanceMarking: React.FC = () => {
                 return;
             }
 
-            if (!geolocationLocation) {
+            if (!location) {
                 setError("Location data is not available. Please enable location services and refresh the page.");
                 setLoading(false);
                 return;
             }
 
-            // Validate location with backend before submitting attendance
-            const isValid = await validateLocation(geolocationLocation);
-            if (!isValid) {
+            // Check if location is valid
+            if (locationValid === false) {
                 setError("Your location is outside the allowed area. Please ensure you are within the venue boundaries.");
                 setLoading(false);
                 return;
@@ -195,8 +209,8 @@ export const AttendanceMarking: React.FC = () => {
             submitData.append('phone', formValues.phone);
             submitData.append('branch', formValues.branch);
             submitData.append('section', formValues.section);
-            submitData.append('location_lat', geolocationLocation.latitude.toFixed(6));
-            submitData.append('location_lon', geolocationLocation.longitude.toFixed(6));
+            submitData.append('location_lat', location.latitude.toFixed(6));
+            submitData.append('location_lon', location.longitude.toFixed(6));
             submitData.append('selfie', selfie);
             
             // Submit to the correct API endpoint
@@ -498,15 +512,11 @@ export const AttendanceMarking: React.FC = () => {
                         )}
                     </Box>
 
-                    <pre>
-                        {JSON.stringify({ loading, location, selfie, sessionId }, null, 2)}
-                    </pre>
-
                     <Button
                         type="submit"
                         variant="contained"
                         color="primary"
-                        disabled={loading || !location || !location.latitude || !location.longitude || !selfie || !sessionId}
+                        disabled={loading || !location || !selfie || !sessionId}
                         fullWidth
                         sx={{ 
                             mt: 2,
@@ -527,8 +537,6 @@ export const AttendanceMarking: React.FC = () => {
         </Card>
     );
 };
-
-export default AttendanceMarking;
 
 
 

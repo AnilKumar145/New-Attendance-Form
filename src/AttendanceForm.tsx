@@ -89,22 +89,6 @@ export const AttendanceMarking: React.FC = () => {
         }
     };
 
-    // Check location validity when location changes
-    useEffect(() => {
-        if (location) {
-            const checkLocation = async () => {
-                const isValid = await validateLocation(location);
-                setLocationValid(isValid);
-                
-                if (!isValid) {
-                    setError("Your location is outside the allowed area. Please ensure you are within the venue boundaries.");
-                }
-            };
-            
-            checkLocation();
-        }
-    }, [location]);
-
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -182,8 +166,9 @@ export const AttendanceMarking: React.FC = () => {
                 return;
             }
 
-            // Check if location is valid
-            if (locationValid === false) {
+            // Validate location with backend before submitting attendance
+            const isValid = await validateLocation(location);
+            if (!isValid) {
                 setError("Your location is outside the allowed area. Please ensure you are within the venue boundaries.");
                 setLoading(false);
                 return;

@@ -13,7 +13,7 @@ import { CameraAlt } from '@mui/icons-material';
 import Webcam from 'react-webcam';
 import { useGeolocation } from './hooks/useGeoLocation';
 import { api } from './api';
-import { useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
 
 // Keep the GeoLocation interface as it's used by the useGeolocation hook
@@ -43,8 +43,7 @@ const validatePhone = (phone: string) => {
 };
 
 export const AttendanceMarking: React.FC = () => {
-    const [searchParams] = useSearchParams();
-    const sessionId = searchParams.get('sessionId');
+    const { sessionId } = useParams<{ sessionId: string }>();
     const [formValues, setFormValues] = useState({
         name: '',
         email: '',

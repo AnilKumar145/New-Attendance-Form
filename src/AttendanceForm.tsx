@@ -67,6 +67,7 @@ export const AttendanceForm: React.FC = () => {
         try {
             const response = await api.get('/utils/location/validate', {
                 params: {
+                    session_id: sessionId,
                     lat: loc.latitude,
                     lon: loc.longitude
                 }

@@ -57,7 +57,6 @@ export const AttendanceForm: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | ReactNode | null>(null);
     const [success, setSuccess] = useState(false);
-    const [locationValid, setLocationValid] = useState<boolean | null>(null);
 
     const webcamRef = useRef<Webcam>(null);
     const { location } = useGeolocation();
@@ -210,30 +209,27 @@ export const AttendanceForm: React.FC = () => {
             setSuccess(true);
         } catch (error) {
             console.error('Error submitting attendance:', error);
-            
+
             if (axios.isAxiosError(error) && error.response) {
                 const errorData = error.response.data;
-                
-                // Check if the error is in the expected format with detail property
-                if (errorData.detail && typeof errorData.detail === 'object') {
-                    if (errorData.detail.error === 'invalid_location') {
-                        // Format a user-friendly error message with distance information
-                        const details = errorData.detail.details;
-                        const distance = Math.round(details.distance_meters);
-                        const venueName = details.venue_name || 'venue';
-                        const maxDistance = details.max_allowed_distance_meters;
-                        
+
+                // If backend returns distance info, show it
+                if (typeof errorData === 'object' && errorData.distance_meters !== undefined && errorData.max_allowed_distance_meters !== undefined) {
+                    setError(
+                        `You are ${Math.round(errorData.distance_meters)} meters away from the venue. Maximum allowed distance is ${Math.round(errorData.max_allowed_distance_meters)} meters.`
+                    );
+                } else if (errorData.detail && typeof errorData.detail === 'object') {
+                    // If backend returns detail object with distance info
+                    const details = errorData.detail.details;
+                    if (details && details.distance_meters !== undefined && details.max_allowed_distance_meters !== undefined) {
                         setError(
-                            `Your location is ${distance}m away from ${venueName}. 
-                            Maximum allowed distance is ${maxDistance}m. 
-                            Please ensure you are within venue boundaries.`
+                            `You are ${Math.round(details.distance_meters)} meters away from the venue. Maximum allowed distance is ${Math.round(details.max_allowed_distance_meters)} meters.`
                         );
                     } else {
-                        // For other structured errors, use the message from the detail
                         setError(errorData.detail.message || JSON.stringify(errorData.detail));
                     }
                 } else {
-                    // For simple error messages
+                    // Fallback to generic error
                     setError(`Failed to submit attendance: ${errorData.detail || JSON.stringify(errorData)}`);
                 }
             } else {

@@ -29,6 +29,7 @@ interface LocationValidationResponse {
     is_valid: boolean;
     distance_meters: number;
     max_allowed_distance_meters: number;
+    venue_name?: string; // Added for venue name
 }
 
 const validateEmail = (email: string) => {
@@ -62,7 +63,7 @@ export const AttendanceForm: React.FC = () => {
     const { location } = useGeolocation();
 
     // Validate location with the backend
-    const validateLocation = async (loc: GeoLocation): Promise<boolean> => {
+    const validateLocation = async (loc: GeoLocation): Promise<LocationValidationResponse | null> => {
         try {
             const response = await api.get('/utils/location/validate', {
                 params: {
@@ -71,9 +72,7 @@ export const AttendanceForm: React.FC = () => {
                     lon: loc.longitude
                 }
             });
-            
-            const data = response.data as LocationValidationResponse;
-            return data.is_valid;
+            return response.data as LocationValidationResponse;
         } catch (error) {
             if (axios.isAxiosError(error) && error.response) {
                 console.error('Location validation error:', error.response.data);
@@ -84,7 +83,7 @@ export const AttendanceForm: React.FC = () => {
             } else {
                 console.error('Location validation error:', error);
             }
-            return false;
+            return null;
         }
     };
 
@@ -166,9 +165,13 @@ export const AttendanceForm: React.FC = () => {
             }
 
             // Validate location with backend before submitting attendance
-            const isValid = await validateLocation(location);
-            if (!isValid) {
-                setError("Your location is outside the allowed area. Please ensure you are within the venue boundaries.");
+            const locationValidation = await validateLocation(location);
+            if (!locationValidation || !locationValidation.is_valid) {
+                setError(
+                    locationValidation
+                        ? `You are ${Math.round(locationValidation.distance_meters)} meters away from ${locationValidation.venue_name || "the venue"}. Maximum allowed distance is ${Math.round(locationValidation.max_allowed_distance_meters)} meters.`
+                        : "Your location is outside the allowed area. Please ensure you are within the venue boundaries."
+                );
                 setLoading(false);
                 return;
             }
@@ -232,6 +235,8 @@ export const AttendanceForm: React.FC = () => {
                     // Fallback to generic error
                     setError(`Failed to submit attendance: ${errorData.detail || JSON.stringify(errorData)}`);
                 }
+            } else if (axios.isAxiosError(error) && error.message === 'Network Error') {
+                setError('Network error: Unable to reach the backend. Please check your connection or contact admin.');
             } else {
                 setError('Failed to submit attendance. Please try again.');
             }
